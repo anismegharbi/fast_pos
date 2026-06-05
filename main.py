@@ -1,0 +1,56 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from database import init_db
+from routes import admin, auth, customers, debts, expenses, inventory, license, products, purchases, sales, suppliers, units
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Voilà POS Backend", version="1.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+    return JSONResponse(status_code=exc.status_code, content={"error": message, "code": exc.status_code})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content={"error": "Validation error", "code": 422, "details": exc.errors()})
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+app.include_router(license.router)
+app.include_router(auth.router)
+app.include_router(products.router)
+app.include_router(sales.router)
+app.include_router(customers.router)
+app.include_router(debts.router)
+app.include_router(inventory.router)
+app.include_router(purchases.router)
+app.include_router(suppliers.router)
+app.include_router(expenses.router)
+app.include_router(units.router)
+app.include_router(admin.router)
