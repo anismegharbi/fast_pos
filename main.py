@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -37,7 +37,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(status_code=422, content={"error": "Validation error", "code": 422, "details": exc.errors()})
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok"}
 
@@ -54,3 +54,16 @@ app.include_router(suppliers.router)
 app.include_router(expenses.router)
 app.include_router(units.router)
 app.include_router(admin.router)
+
+
+# ── Fallback: compiled app POSTs to root "/" of each Cloud Function URL ──
+# The original app uses separate Cloud-Function URLs per endpoint
+# (licenseActivateUrl, licenseVerifyUrl) and POSTs to "/" of each one.
+# Since we consolidated them into a single server, POST / = activate.
+@app.post("/", response_model=license.LicenseResponse)
+def root_activate(
+    payload: license.LicenseActivateRequest,
+    db: license.Session = Depends(license.get_db),
+):
+    return license._activate_or_verify(payload, db)
+
