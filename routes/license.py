@@ -69,14 +69,18 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
     return res
 
 
-@router.post("/activate", response_model=LicenseResponse)
+@router.post("/activate")
 def activate(payload: LicenseActivateRequest, db: Session = Depends(get_db)):
-    return _activate_or_verify(payload, db)
+    from fastapi.responses import JSONResponse
+    res = _activate_or_verify(payload, db)
+    return JSONResponse(content=res.model_dump())
 
 
-@router.post("/verify", response_model=LicenseResponse)
+@router.post("/verify")
 def verify(payload: LicenseActivateRequest, db: Session = Depends(get_db)):
-    return _activate_or_verify(payload, db)
+    from fastapi.responses import JSONResponse
+    res = _activate_or_verify(payload, db)
+    return JSONResponse(content=res.model_dump())
 
 
 @router.get("/announcements", response_model=AnnouncementResponse)
