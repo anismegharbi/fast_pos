@@ -74,5 +74,7 @@ async def root_activate(
     except Exception as e:
         print("PARSE ERROR:", e)
         return license.LicenseResponse(success=False, error=str(e))
-    return license._activate_or_verify(payload, db)
+    response = license._activate_or_verify(payload, db)
+    print("RAW RESPONSE:", response.model_dump_json())
+    return response
 
