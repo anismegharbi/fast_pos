@@ -16,16 +16,18 @@ class ErrorResponse(BaseModel):
 
 
 class LicenseActivateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     license_key: str = Field(alias="licenseKey")
     device_id: str = Field(alias="deviceId")
 
 
 class LicenseInfo(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     valid: bool
     status: str
-    store_name: str = Field(alias="storeName")
-    expires_at: str = Field(alias="expiresAt")
-    days_left: int = Field(alias="daysLeft")
+    storeName: str
+    expiresAt: str
+    daysLeft: int
 
 
 class LicenseResponse(BaseModel):
@@ -44,6 +46,7 @@ class LoginRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     email: EmailStr
     password: str
     name: str
@@ -452,6 +455,7 @@ class UnitOut(UnitBase, APIModel):
 
 
 class AdminLicenseCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     license_key: str | None = Field(default=None, alias="licenseKey")
     device_id: str | None = Field(default=None, alias="deviceId")
     store_name: str = Field(alias="storeName")
@@ -463,6 +467,7 @@ class AdminLicenseCreate(BaseModel):
 
 
 class AdminLicenseUpdate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     license_key: str | None = Field(default=None, alias="licenseKey")
     device_id: str | None = Field(default=None, alias="deviceId")
     store_name: str | None = Field(default=None, alias="storeName")
