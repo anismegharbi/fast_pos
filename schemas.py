@@ -33,6 +33,7 @@ class LicenseResponse(BaseModel):
     success: bool
     license: LicenseInfo | None = None
     error: str | None = None
+    data: dict[str, Any] | None = None
 
 
 class AnnouncementResponse(BaseModel):

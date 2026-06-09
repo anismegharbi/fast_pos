@@ -34,7 +34,9 @@ def _license_payload(license_obj: License) -> LicenseInfo:
 def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> LicenseResponse:
     license_obj = db.query(License).filter(License.license_key == payload.licenseKey).first()
     if license_obj is None:
-        return LicenseResponse(success=False, error="License not found or suspended")
+        res = LicenseResponse(success=False, error="License not found or suspended")
+        res.data = res.model_dump(exclude={"data"})
+        return res
 
     expires_at = license_obj.expires_at
     if expires_at.tzinfo is None:
@@ -45,16 +47,22 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
             license_obj.status = LicenseStatus.expired
             db.commit()
             db.refresh(license_obj)
-        return LicenseResponse(success=False, error="License not found or suspended")
+        res = LicenseResponse(success=False, error="License not found or suspended")
+        res.data = res.model_dump(exclude={"data"})
+        return res
 
     if license_obj.device_id is None:
         license_obj.device_id = payload.deviceId
         db.commit()
         db.refresh(license_obj)
     elif license_obj.device_id != payload.deviceId:
-        return LicenseResponse(success=False, error="License is already linked to another device")
+        res = LicenseResponse(success=False, error="License is already linked to another device")
+        res.data = res.model_dump(exclude={"data"})
+        return res
 
-    return LicenseResponse(success=True, license=_license_payload(license_obj))
+    res = LicenseResponse(success=True, license=_license_payload(license_obj))
+    res.data = res.model_dump(exclude={"data"})
+    return res
 
 
 @router.post("/activate", response_model=LicenseResponse)
