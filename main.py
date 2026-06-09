@@ -82,6 +82,32 @@ async def root_activate(
         # If we can't parse, let's just return a generic error or attempt to extract what we can
         raise HTTPException(status_code=400, detail="Invalid request body")
         
-    response_obj = license._activate_or_verify(payload, db)
+    # response_obj = license._activate_or_verify(payload, db)
     # Return as pure JSONResponse to force Content-Length instead of chunked encoding
-    return JSONResponse(content=response_obj.model_dump())
+    
+    # HARDCODED RESPONSE FOR DEBUGGING
+    return JSONResponse(content={
+        "success": True,
+        "error": None,
+        "message": None,
+        "valid": True,
+        "status": "active",
+        "license": {
+            "valid": True,
+            "status": "active",
+            "storeName": "Store",
+            "expiresAt": "2027-06-09",
+            "daysLeft": 365
+        },
+        "data": {
+            "success": True,
+            "error": None,
+            "license": {
+                "valid": True,
+                "status": "active",
+                "storeName": "Store",
+                "expiresAt": "2027-06-09",
+                "daysLeft": 365
+            }
+        }
+    })
