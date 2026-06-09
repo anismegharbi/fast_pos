@@ -61,9 +61,18 @@ app.include_router(admin.router)
 # (licenseActivateUrl, licenseVerifyUrl) and POSTs to "/" of each one.
 # Since we consolidated them into a single server, POST / = activate.
 @app.post("/", response_model=license.LicenseResponse)
-def root_activate(
-    payload: license.LicenseActivateRequest,
+async def root_activate(
+    request: Request,
     db: license.Session = Depends(license.get_db),
 ):
+    body = await request.body()
+    print("RAW REQUEST BODY:", body)
+    import json
+    try:
+        data = json.loads(body)
+        payload = license.LicenseActivateRequest(**data)
+    except Exception as e:
+        print("PARSE ERROR:", e)
+        return license.LicenseResponse(success=False, error=str(e))
     return license._activate_or_verify(payload, db)
 
