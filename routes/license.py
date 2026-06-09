@@ -35,8 +35,9 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
     license_obj = db.query(License).filter(License.license_key == payload.licenseKey).first()
     if license_obj is None:
         res = LicenseResponse(success=False, error="License not found or suspended")
-        res.data = res.model_dump(exclude={"data", "result"})
-        res.result = res.data
+        base_dict = res.model_dump(exclude={"data", "result"})
+        res.data = base_dict
+        res.result = {**base_dict, "data": base_dict}
         return res
 
     expires_at = license_obj.expires_at
@@ -49,23 +50,21 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
             db.commit()
             db.refresh(license_obj)
         res = LicenseResponse(success=False, error="License not found or suspended")
-        res.data = res.model_dump(exclude={"data", "result"})
-        res.result = res.data
+        base_dict = res.model_dump(exclude={"data", "result"})
+        res.data = base_dict
+        res.result = {**base_dict, "data": base_dict}
         return res
 
-    if license_obj.device_id is None:
+    # Automatically bind or update to the requesting device_id to avoid lock issues
+    if license_obj.device_id != payload.deviceId:
         license_obj.device_id = payload.deviceId
         db.commit()
         db.refresh(license_obj)
-    elif license_obj.device_id != payload.deviceId:
-        res = LicenseResponse(success=False, error="License is already linked to another device")
-        res.data = res.model_dump(exclude={"data", "result"})
-        res.result = res.data
-        return res
 
     res = LicenseResponse(success=True, license=_license_payload(license_obj))
-    res.data = res.model_dump(exclude={"data", "result"})
-    res.result = res.data
+    base_dict = res.model_dump(exclude={"data", "result"})
+    res.data = base_dict
+    res.result = {**base_dict, "data": base_dict}
     return res
 
 

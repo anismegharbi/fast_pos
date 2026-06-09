@@ -65,49 +65,18 @@ async def root_activate(
     request: Request,
     db: license.Session = Depends(license.get_db),
 ):
-    """
-    Handle the root POST request that the app sends for activation.
-    We read the raw request body to log it, then pass it to the license logic.
-    """
+    import json as _json
     raw_body = await request.body()
     print("RAW REQUEST BODY:", raw_body)
     
-    # Parse it manually to avoid Pydantic validation errors if the app sends weird data
     try:
-        import json
-        payload_data = json.loads(raw_body)
+        payload_data = _json.loads(raw_body)
         payload = license.LicenseActivateRequest(**payload_data)
     except Exception as e:
         print("Failed to parse request:", e)
-        # If we can't parse, let's just return a generic error or attempt to extract what we can
         raise HTTPException(status_code=400, detail="Invalid request body")
         
-    # response_obj = license._activate_or_verify(payload, db)
-    # Return as pure JSONResponse to force Content-Length instead of chunked encoding
-    
-    # HARDCODED RESPONSE FOR DEBUGGING
-    return JSONResponse(content={
-        "success": True,
-        "error": None,
-        "message": None,
-        "valid": True,
-        "status": "active",
-        "license": {
-            "valid": True,
-            "status": "active",
-            "storeName": "Store",
-            "expiresAt": "2027-06-09",
-            "daysLeft": 365
-        },
-        "data": {
-            "success": True,
-            "error": None,
-            "license": {
-                "valid": True,
-                "status": "active",
-                "storeName": "Store",
-                "expiresAt": "2027-06-09",
-                "daysLeft": 365
-            }
-        }
-    })
+    response_obj = license._activate_or_verify(payload, db)
+    response_dict = response_obj.model_dump()
+    print("RAW RESPONSE:", _json.dumps(response_dict))
+    return JSONResponse(content=response_dict)

@@ -35,9 +35,6 @@ class LicenseResponse(BaseModel):
     error: str | None = None
     data: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
-    message: str | None = None
-    status: str | None = None
-    valid: bool | None = None
 
 
 class AnnouncementResponse(BaseModel):
