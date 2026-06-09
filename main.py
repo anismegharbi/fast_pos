@@ -60,21 +60,28 @@ app.include_router(admin.router)
 # The original app uses separate Cloud-Function URLs per endpoint
 # (licenseActivateUrl, licenseVerifyUrl) and POSTs to "/" of each one.
 # Since we consolidated them into a single server, POST / = activate.
-@app.post("/", response_model=license.LicenseResponse)
+@app.post("/")
 async def root_activate(
     request: Request,
     db: license.Session = Depends(license.get_db),
 ):
-    body = await request.body()
-    print("RAW REQUEST BODY:", body)
-    import json
+    """
+    Handle the root POST request that the app sends for activation.
+    We read the raw request body to log it, then pass it to the license logic.
+    """
+    raw_body = await request.body()
+    print("RAW REQUEST BODY:", raw_body)
+    
+    # Parse it manually to avoid Pydantic validation errors if the app sends weird data
     try:
-        data = json.loads(body)
-        payload = license.LicenseActivateRequest(**data)
+        import json
+        payload_data = json.loads(raw_body)
+        payload = license.LicenseActivateRequest(**payload_data)
     except Exception as e:
-        print("PARSE ERROR:", e)
-        return license.LicenseResponse(success=False, error=str(e))
-    response = license._activate_or_verify(payload, db)
-    print("RAW RESPONSE:", response.model_dump_json())
-    return response
-
+        print("Failed to parse request:", e)
+        # If we can't parse, let's just return a generic error or attempt to extract what we can
+        raise HTTPException(status_code=400, detail="Invalid request body")
+        
+    response_obj = license._activate_or_verify(payload, db)
+    # Return as pure JSONResponse to force Content-Length instead of chunked encoding
+    return JSONResponse(content=response_obj.model_dump())
