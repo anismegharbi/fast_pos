@@ -33,7 +33,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @router.post("/register", response_model=TokenResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    license_obj = db.query(License).filter(License.license_key == payload.license_key).first()
+    license_obj = db.query(License).filter(License.license_key == payload.licenseKey).first()
     ensure_license_valid(license_obj)
 
     existing = db.query(User).filter(User.email == payload.email).first()

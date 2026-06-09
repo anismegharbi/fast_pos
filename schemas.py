@@ -16,9 +16,8 @@ class ErrorResponse(BaseModel):
 
 
 class LicenseActivateRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    license_key: str = Field(alias="licenseKey")
-    device_id: str = Field(alias="deviceId")
+    licenseKey: str
+    deviceId: str
 
 
 class LicenseInfo(BaseModel):
@@ -46,11 +45,10 @@ class LoginRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
     email: EmailStr
     password: str
     name: str
-    license_key: str = Field(alias="licenseKey")
+    licenseKey: str
 
 
 class PinLoginRequest(BaseModel):
@@ -455,26 +453,24 @@ class UnitOut(UnitBase, APIModel):
 
 
 class AdminLicenseCreate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    license_key: str | None = Field(default=None, alias="licenseKey")
-    device_id: str | None = Field(default=None, alias="deviceId")
-    store_name: str = Field(alias="storeName")
-    owner_name: str | None = Field(default=None, alias="ownerName")
-    owner_phone: str | None = Field(default=None, alias="ownerPhone")
+    licenseKey: str | None = None
+    deviceId: str | None = None
+    storeName: str
+    ownerName: str | None = None
+    ownerPhone: str | None = None
     status: LicenseStatus = LicenseStatus.active
-    expires_at: datetime = Field(alias="expiresAt")
+    expiresAt: datetime
     notes: str | None = None
 
 
 class AdminLicenseUpdate(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    license_key: str | None = Field(default=None, alias="licenseKey")
-    device_id: str | None = Field(default=None, alias="deviceId")
-    store_name: str | None = Field(default=None, alias="storeName")
-    owner_name: str | None = Field(default=None, alias="ownerName")
-    owner_phone: str | None = Field(default=None, alias="ownerPhone")
+    licenseKey: str | None = None
+    deviceId: str | None = None
+    storeName: str | None = None
+    ownerName: str | None = None
+    ownerPhone: str | None = None
     status: LicenseStatus | None = None
-    expires_at: datetime | None = Field(default=None, alias="expiresAt")
+    expiresAt: datetime | None = None
     notes: str | None = None
 
 

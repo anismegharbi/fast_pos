@@ -51,31 +51,49 @@ def list_licenses(db: Session = Depends(get_db)):
 
 @router.post("/licenses", response_model=LicenseAdminOut, dependencies=[Depends(require_admin_secret)])
 def create_license(payload: AdminLicenseCreate, db: Session = Depends(get_db)):
-    data = payload.model_dump(by_alias=False)
-    if not data.get("license_key"):
-        data["license_key"] = unique_license_key(db)
+    key = payload.licenseKey or unique_license_key(db)
 
-    existing = db.query(License).filter(License.license_key == data["license_key"]).first()
+    existing = db.query(License).filter(License.license_key == key).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="License key already exists")
 
-    license_obj = License(**data)
+    license_obj = License(
+        license_key=key,
+        device_id=payload.deviceId,
+        store_name=payload.storeName,
+        owner_name=payload.ownerName,
+        owner_phone=payload.ownerPhone,
+        status=payload.status,
+        expires_at=payload.expiresAt,
+        notes=payload.notes,
+    )
     db.add(license_obj)
     db.commit()
     db.refresh(license_obj)
     return license_obj
 
 
+_ADMIN_FIELD_MAP = {
+    "licenseKey": "license_key",
+    "deviceId": "device_id",
+    "storeName": "store_name",
+    "ownerName": "owner_name",
+    "ownerPhone": "owner_phone",
+    "expiresAt": "expires_at",
+}
+
+
 @router.put("/licenses/{license_id}", response_model=LicenseAdminOut, dependencies=[Depends(require_admin_secret)])
 def update_license(license_id: int, payload: AdminLicenseUpdate, db: Session = Depends(get_db)):
     license_obj = _get_license(db, license_id)
-    data = payload.model_dump(exclude_unset=True, by_alias=False)
-    if "license_key" in data:
-        existing = db.query(License).filter(License.license_key == data["license_key"], License.id != license_id).first()
+    data = payload.model_dump(exclude_unset=True)
+    if "licenseKey" in data:
+        existing = db.query(License).filter(License.license_key == data["licenseKey"], License.id != license_id).first()
         if existing is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="License key already exists")
     for key, value in data.items():
-        setattr(license_obj, key, value)
+        db_key = _ADMIN_FIELD_MAP.get(key, key)
+        setattr(license_obj, db_key, value)
     db.commit()
     db.refresh(license_obj)
     return license_obj
