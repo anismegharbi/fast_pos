@@ -33,6 +33,13 @@ class LicenseResponse(BaseModel):
     success: bool
     license: LicenseInfo | None = None
     payload: dict[str, Any] | None = None
+    valid: bool | None = None
+    status: str | None = None
+    storeName: str | None = None
+    expiresAt: str | None = None
+    daysLeft: int | None = None
+    plan: str | None = None
+    offlineAllowed: bool | None = None
     error: str | None = None
     data: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
