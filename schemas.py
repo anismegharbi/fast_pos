@@ -32,6 +32,7 @@ class LicenseInfo(BaseModel):
 class LicenseResponse(BaseModel):
     success: bool
     license: LicenseInfo | None = None
+    payload: dict[str, Any] | None = None
     error: str | None = None
     data: dict[str, Any] | None = None
     result: dict[str, Any] | None = None

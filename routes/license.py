@@ -61,7 +61,17 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
         db.commit()
         db.refresh(license_obj)
 
-    res = LicenseResponse(success=True, license=_license_payload(license_obj))
+    license_info = _license_payload(license_obj)
+    res = LicenseResponse(
+        success=True,
+        license=license_info,
+        payload={
+            "plan": "active",
+            "offlineAllowed": True,
+            "daysLeft": license_info.daysLeft,
+            "storeName": license_info.storeName,
+        },
+    )
     base_dict = res.model_dump(exclude={"data", "result"})
     res.data = base_dict
     res.result = {**base_dict, "data": base_dict}
