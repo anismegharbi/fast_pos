@@ -59,24 +59,68 @@ app.include_router(admin.router)
 # ── Fallback: compiled app POSTs to root "/" of each Cloud Function URL ──
 # The original app uses separate Cloud-Function URLs per endpoint
 # (licenseActivateUrl, licenseVerifyUrl) and POSTs to "/" of each one.
-# Since we consolidated them into a single server, POST / = activate.
+# Since we consolidated them into a single server, POST / = activate/verify.
 @app.post("/")
 async def root_activate(
     request: Request,
     db: license.Session = Depends(license.get_db),
 ):
     import json as _json
+    from license_token import build_license_token
+
     raw_body = await request.body()
     print("RAW REQUEST BODY:", raw_body)
-    
+
     try:
         payload_data = _json.loads(raw_body)
-        payload = license.LicenseActivateRequest(**payload_data)
     except Exception as e:
-        print("Failed to parse request:", e)
+        print("Failed to parse JSON:", e)
         raise HTTPException(status_code=400, detail="Invalid request body")
-        
-    response_obj = license._activate_or_verify(payload, db)
-    response_dict = response_obj.model_dump()
-    print("RAW RESPONSE:", _json.dumps(response_dict))
-    return JSONResponse(content=response_dict)
+
+    license_key = payload_data.get("licenseKey", "").strip().upper()
+    device_id = payload_data.get("deviceId", "")
+
+    if not license_key or not device_id:
+        raise HTTPException(status_code=400, detail="Missing licenseKey or deviceId")
+
+    from models import License as LicenseModel, LicenseStatus
+    from datetime import datetime, timezone
+
+    license_obj = db.query(LicenseModel).filter(LicenseModel.license_key == license_key).first()
+
+    if license_obj is None:
+        print(f"License not found: {license_key}")
+        return JSONResponse(status_code=200, content={"error": "License not found"})
+
+    expires_at = license_obj.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    # Check expiry
+    if expires_at <= datetime.now(timezone.utc):
+        if license_obj.status != LicenseStatus.expired:
+            license_obj.status = LicenseStatus.expired
+            db.commit()
+            db.refresh(license_obj)
+
+    # Auto-bind device (no device lock)
+    if license_obj.device_id != device_id:
+        license_obj.device_id = device_id
+        db.commit()
+        db.refresh(license_obj)
+
+    # Build the signed token response
+    token_response = build_license_token(
+        license_key=license_obj.license_key,
+        device_id=device_id,
+        status=license_obj.status.value,   # "active", "expired", "suspended"
+        expires_at=expires_at,
+        plan="pro",
+        features=[],
+        max_devices=1,
+        offline_allowed=True,
+    )
+
+    print("RAW RESPONSE:", _json.dumps(token_response))
+    return JSONResponse(content=token_response)
+
