@@ -64,7 +64,7 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
     license_info = _license_payload(license_obj)
     payload_data = {
         "plan": "active",
-        "offlineAllowed": True,
+        "offlineAllowed": license_obj.offline_allowed,
         "daysLeft": license_info.daysLeft,
         "storeName": license_info.storeName,
     }
