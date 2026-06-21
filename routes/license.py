@@ -31,14 +31,12 @@ def _license_payload(license_obj: License) -> LicenseInfo:
     )
 
 
-def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> LicenseResponse:
+def _activate_or_verify(payload: LicenseActivateRequest, db: Session):
+    from license_token import build_license_token
+
     license_obj = db.query(License).filter(License.license_key == payload.licenseKey).first()
     if license_obj is None:
-        res = LicenseResponse(success=False, error="License not found or suspended")
-        base_dict = res.model_dump(exclude={"data", "result"})
-        res.data = base_dict
-        res.result = {**base_dict, "data": base_dict}
-        return res
+        return None, "License not found or suspended"
 
     expires_at = license_obj.expires_at
     if expires_at.tzinfo is None:
@@ -49,11 +47,7 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
             license_obj.status = LicenseStatus.expired
             db.commit()
             db.refresh(license_obj)
-        res = LicenseResponse(success=False, error="License not found or suspended")
-        base_dict = res.model_dump(exclude={"data", "result"})
-        res.data = base_dict
-        res.result = {**base_dict, "data": base_dict}
-        return res
+        return None, "License not found or suspended"
 
     # Automatically bind or update to the requesting device_id to avoid lock issues
     if license_obj.device_id != payload.deviceId:
@@ -61,43 +55,35 @@ def _activate_or_verify(payload: LicenseActivateRequest, db: Session) -> License
         db.commit()
         db.refresh(license_obj)
 
-    license_info = _license_payload(license_obj)
-    payload_data = {
-        "plan": "active",
-        "offlineAllowed": license_obj.offline_allowed,
-        "daysLeft": license_info.daysLeft,
-        "storeName": license_info.storeName,
-    }
-    res = LicenseResponse(
-        success=True,
-        license=license_info,
-        payload=payload_data,
-        valid=license_info.valid,
-        status=license_info.status,
-        storeName=license_info.storeName,
-        expiresAt=license_info.expiresAt,
-        daysLeft=license_info.daysLeft,
-        plan=payload_data["plan"],
-        offlineAllowed=payload_data["offlineAllowed"],
+    token_response = build_license_token(
+        license_key=license_obj.license_key,
+        device_id=payload.deviceId,
+        status=license_obj.status.value,
+        expires_at=expires_at,
+        plan="pro",
+        features=[],
+        max_devices=1,
+        offline_allowed=license_obj.offline_allowed,
     )
-    base_dict = res.model_dump(exclude={"data", "result"})
-    res.data = base_dict
-    res.result = {**base_dict, "data": base_dict}
-    return res
+    return token_response, None
 
 
 @router.post("/activate")
 def activate(payload: LicenseActivateRequest, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
-    res = _activate_or_verify(payload, db)
-    return JSONResponse(content=res.model_dump())
+    token, error = _activate_or_verify(payload, db)
+    if error:
+        return JSONResponse(status_code=200, content={"error": error})
+    return JSONResponse(content=token)
 
 
 @router.post("/verify")
 def verify(payload: LicenseActivateRequest, db: Session = Depends(get_db)):
     from fastapi.responses import JSONResponse
-    res = _activate_or_verify(payload, db)
-    return JSONResponse(content=res.model_dump())
+    token, error = _activate_or_verify(payload, db)
+    if error:
+        return JSONResponse(status_code=200, content={"error": error})
+    return JSONResponse(content=token)
 
 
 @router.get("/announcements", response_model=AnnouncementResponse)
