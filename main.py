@@ -118,7 +118,7 @@ async def root_activate(
         plan="pro",
         features=[],
         max_devices=1,
-        offline_allowed=license_obj.offline_allowed,
+        offline_allowed=True,
     )
 
     print("RAW RESPONSE:", _json.dumps(token_response))

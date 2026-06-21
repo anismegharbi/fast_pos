@@ -51,7 +51,6 @@ class License(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    offline_allowed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     users: Mapped[list["User"]] = relationship(back_populates="license", cascade="all, delete-orphan")
 
